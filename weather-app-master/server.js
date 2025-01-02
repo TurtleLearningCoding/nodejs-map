@@ -139,3 +139,45 @@ function filterJSON(stringifiedJSON, filtersObj) {
         return true;
     }));
 }
+function handleRequest(req, res) {
+    switch (req.method.toUpperCase()) {
+        case 'OPTIONS':
+            res.writeHead(200);
+            res.end();
+            break;
+        case 'GET':
+            handleGetRequest(req, res);
+            break;
+        case 'POST':
+            handlePostRequest(req, res);
+            break;
+        default:
+            res.writeHead(405, buildHeader());
+            res.end('Method Not Allowed');
+            break;
+    }
+}
+
+function handlePostRequest(req, res) {
+    let body = '';
+    req.on('data', chunk => {
+        body += chunk;
+    });
+    req.on('end', () => {
+        try {
+            const data = JSON.parse(body);
+            io.appendFile(`${PUBLIC_FOLDER}/data.json`, JSON.stringify(data) + '\n')
+                .then(() => {
+                    res.writeHead(201, buildHeader('*.json'));
+                    res.end(JSON.stringify({ message: 'Data saved successfully!' }));
+                })
+                .catch(err => {
+                    res.writeHead(500, buildHeader());
+                    res.end(err.message);
+                });
+        } catch (error) {
+            res.writeHead(400, buildHeader());
+            res.end('Invalid JSON');
+        }
+    });
+}
